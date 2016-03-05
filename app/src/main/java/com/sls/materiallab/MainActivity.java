@@ -1,8 +1,17 @@
 package com.sls.materiallab;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.location.GpsSatellite;
+import android.location.GpsStatus;
+import android.location.LocationManager;
+import android.preference.PreferenceManager;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.TabLayout;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -14,18 +23,29 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
+import android.widget.TextView;
 
 import com.sls.materiallab.fragments.DbListFragment;
 import com.sls.materiallab.fragments.MapFragment;
 import com.sls.materiallab.fragments.WifiListFragment;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.w3c.dom.Text;
 
-public class MainActivity extends AppCompatActivity {
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class MainActivity extends AppCompatActivity  {
 
 
     private DrawerLayout mDrawerLayout;
+    private ExecutorService mExecutorSingle;
+
+    private int mTimeInSeconds;
+    private SharedPreferences sharedPref;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,16 +53,23 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
+        sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         // Create Navigation drawer and inflate layout
         final NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer);
-
+        mTimeInSeconds = Calendar.getInstance().get(Calendar.SECOND);
         // Adding menu icon to Toolbar
         ActionBar supportActionBar = getSupportActionBar();
         if (supportActionBar != null) {
             supportActionBar.setDisplayHomeAsUpEnabled(true);
         }
+
+
+        //Start gps service async
+        mExecutorSingle = Executors.newSingleThreadExecutor();
+        mExecutorSingle.execute(new GpsWorker(this));
+
+
 
         // Set behavior of Navigation drawer
 
@@ -104,6 +131,11 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    protected void onStart(){
+        super.onStart();
+
+    }
     // Add Fragments to Tabs
     private void setupViewPager(ViewPager viewPager) {
         Adapter adapter = new Adapter(getSupportFragmentManager());
